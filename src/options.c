@@ -877,7 +877,7 @@ option_set_command(int argc, const char *argv[])
 
 /* Wants: mode request key */
 static enum status_code
-option_bind_command(int argc, const char *argv[], bool addbind)
+_option_bind_command(int argc, const char *argv[], bool addbind)
 {
 	struct key key[16];
 	size_t keys = 0;
@@ -975,6 +975,18 @@ option_bind_command(int argc, const char *argv[], bool addbind)
 	return add_keybinding(keymap, request, key, keys, addbind);
 }
 
+static enum status_code
+option_bind_command(int argc, const char *argv[])
+{
+	return _option_bind_command(argc, argv, false);
+}
+
+static enum status_code
+option_addbind_command(int argc, const char *argv[])
+{
+	return _option_bind_command(argc, argv, true);
+}
+
 
 static enum status_code load_option_file(const char *path);
 
@@ -1013,10 +1025,10 @@ set_option(const char *opt, int argc, const char *argv[])
 		return option_set_command(argc, argv);
 
 	if (!strcmp(opt, "bind"))
-		return option_bind_command(argc, argv, false);
+		return option_bind_command(argc, argv);
 
 	if (!strcmp(opt, "addbind"))
-		return option_bind_command(argc, argv, true);
+		return option_addbind_command(argc, argv);
 
 	if (!strcmp(opt, "source"))
 		return option_source_command(argc, argv);
@@ -1546,6 +1558,9 @@ read_repo_config_option(char *name, size_t namelen, char *value, size_t valuelen
 
 	else if (!prefixcmp(name, "tig.bind."))
 		set_repo_config_option(name + 9, value, option_bind_command);
+
+	else if (!prefixcmp(name, "tig.addbind."))
+		set_repo_config_option(name + 12, value, option_addbind_command);
 
 	else if (!prefixcmp(name, "tig."))
 		set_repo_config_option(name + 4, value, option_set_command);

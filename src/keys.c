@@ -161,13 +161,13 @@ get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], si
 
 	for (i = 0; i < keymap->size; i++)
 		if (keybinding_matches(keymap->data[i], key, keys, NULL)) {
-			if (matches && keymap->data[i]->request != REQ_NONE)
+			if (matches && keymap->data[i]->request[0] != REQ_NONE)
 				(*matches)++;
 			/* Overriding keybindings, might have been added
 			 * at the end of the keymap so we need to
 			 * iterate all keybindings. */
 			if (keymap->data[i]->keys == keys)
-				request = keymap->data[i]->request;
+				request = keymap->data[i]->request[0];
 		}
 
 	return request;
@@ -426,7 +426,7 @@ append_keymap_request_keys(char *buf, size_t *pos, enum request request,
 	int i;
 
 	for (i = 0; i < keymap->size; i++) {
-		if (keymap->data[i]->request == request) {
+		if (keymap->data[i]->request[0] == request) {
 			if (!append_key(buf, pos, keymap->data[i], all))
 				return false;
 			if (!all)
@@ -598,7 +598,7 @@ foreach_key_visit(struct key_visitor_state *state, const char *group,
 	}
 
 	for (i = 0; i < keymap->size; i++) {
-		if (keymap->data[i]->request == request) {
+		if (keymap->data[i]->request[0] == request) {
 			struct keybinding *keybinding = keymap->data[i];
 			const char *key = get_key_name(keybinding->key, keybinding->keys, false);
 

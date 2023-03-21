@@ -861,25 +861,65 @@ main(int argc, const char *argv[])
 		run_prompt_command(NULL, script_command);
 	}
 
-	while (view_driver(display[current_view], request)) {
-		view = display[current_view];
-		request = read_key_combo(view->keymap);
-
-		/* Some low-level request handling. This keeps access to
-		 * status_win restricted. */
-		switch (request) {
-		case REQ_UNKNOWN:
-			report("Unknown key, press %s for help",
-			       get_view_key(view, REQ_VIEW_HELP));
-			request = REQ_NONE;
-			break;
-		case REQ_PROMPT:
-			request = open_prompt(view);
-			break;
-		default:
-			break;
+	enum request initial_request_vector[1] = { request };
+	size_t num_requests = 1;
+	enum request *request_vector = initial_request_vector;
+	while (true)
+	{
+	    bool do_exit = false;
+            for (size_t i = 0; i < num_requests; i++)
+	    {
+	        if (view_driver(display[current_view], request_vector[i]))
+	        {
+		    view = display[current_view];
+		    /* Some low-level request handling. This keeps access to
+		     * status_win restricted. */
+		    switch (request) {
+		    case REQ_UNKNOWN:
+		    	report("Unknown key, press %s for help",
+		    	       get_view_key(view, REQ_VIEW_HELP));
+		    	request = REQ_NONE;
+		    	break;
+		    case REQ_PROMPT:
+		    	request = open_prompt(view);
+		    	break;
+		    default:
+		    	break;
+		    }
+	        }
+		else
+		{
+		    do_exit = true;
+                    break;
 		}
+	    }
+	    if (do_exit)
+	    {
+	        break;
+	    }
+	    request_vector = read_key_combo(view->keymap, &num_requests);
+	    //initial_request_vector[0] = read_key_combo(view->keymap);
 	}
+
+	////while (view_driver(display[current_view], request)) {
+	//while (view_driver(display[current_view], request)) {
+	//	view = display[current_view];
+
+	//	/* Some low-level request handling. This keeps access to
+	//	 * status_win restricted. */
+	//	switch (request) {
+	//	case REQ_UNKNOWN:
+	//		report("Unknown key, press %s for help",
+	//		       get_view_key(view, REQ_VIEW_HELP));
+	//		request = REQ_NONE;
+	//		break;
+	//	case REQ_PROMPT:
+	//		request = open_prompt(view);
+	//		break;
+	//	default:
+	//		break;
+	//	}
+	//}
 
 	exit(EXIT_SUCCESS);
 
