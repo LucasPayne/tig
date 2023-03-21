@@ -14,6 +14,13 @@
 #ifndef TIG_H
 #define TIG_H
 
+#include <stdio.h>
+extern FILE *LOG;
+#define log(...) {\
+     fprintf(LOG, ##__VA_ARGS__);\
+     fflush(LOG);\
+}
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

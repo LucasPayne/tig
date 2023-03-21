@@ -54,6 +54,7 @@
 	REQ_(MOVE_PAGE_DOWN,	"Move cursor one page down"), \
 	REQ_(MOVE_HALF_PAGE_UP,	"Move cursor half a page up"), \
 	REQ_(MOVE_HALF_PAGE_DOWN,	"Move cursor half a page down"), \
+	REQ_(MOVE_CURSOR_CENTER,        "Move cursor to the center"), \
 	REQ_(MOVE_FIRST_LINE,	"Move cursor to first line"), \
 	REQ_(MOVE_LAST_LINE,	"Move cursor to last line"), \
 	REQ_(MOVE_NEXT_MERGE,	"Move cursor to next merge commit"), \
@@ -67,6 +68,7 @@
 	REQ_(SCROLL_HALF_PAGE_UP,	"Scroll half a page up"), \
 	REQ_(SCROLL_HALF_PAGE_DOWN,	"Scroll half a page down"), \
 	REQ_(SCROLL_FIRST_COL,	"Scroll to the first line columns"), \
+	REQ_(SCROLL_CURSOR_CENTER,	"Scroll to center the cursor"), \
 	REQ_(SCROLL_LEFT,	"Scroll two columns left"), \
 	REQ_(SCROLL_RIGHT,	"Scroll two columns right"), \
 	\

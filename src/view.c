@@ -59,7 +59,7 @@ do_scroll_view(struct view *view, int lines)
 	view->pos.offset += lines;
 
 	assert(0 <= view->pos.offset && view->pos.offset < view->lines);
-	assert(lines);
+	//assert(lines);
 
 	/* Move current line into the view. */
 	if (view->pos.lineno < view->pos.offset) {
@@ -172,6 +172,15 @@ scroll_view(struct view *view, enum request request)
 		lines = -lines;
 		break;
 
+	case REQ_SCROLL_CURSOR_CENTER:
+		log("cursor center\n");
+		log("    view->height: %d\n", (int) (view->height));
+		log("    view->pos.lineno: %d\n", (int) (view->pos.lineno));
+		log("    view->pos.offset: %d\n", (int) (view->pos.offset));
+		lines = -(view->height / 2 - (view->pos.lineno - view->pos.offset));
+		if ((int)view->pos.offset + (int)lines < 0) lines = -view->pos.offset;
+                break;
+
 	default:
 		die("request %d not handled in switch", request);
 	}
@@ -231,6 +240,10 @@ move_view(struct view *view, enum request request)
 	case REQ_MOVE_WHEEL_UP:
 		steps = opt_mouse_scroll > view->pos.lineno
 		      ? -view->pos.lineno : -opt_mouse_scroll;
+		break;
+
+	case REQ_MOVE_CURSOR_CENTER:
+		steps = view->height/2 - (view->pos.lineno - view->pos.offset);
 		break;
 
 	case REQ_MOVE_UP:

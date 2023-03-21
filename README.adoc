@@ -4,6 +4,8 @@ FORK
 Added "addbind" command. Unlike bind, this will keep the previously bound action/actions. Therefore keys can be bound to
 an arbitrary sequence of actions by using bind, then multiple addbinds.
 
+Added move-cursor-center and scroll-cursor-center.
+
 
 Tig: text-mode interface for Git
 ================================

@@ -61,11 +61,6 @@
 #endif
 
 FILE *LOG = NULL;
-#define log(...) {\
-     fprintf(LOG, ##__VA_ARGS__);\
-     fflush(LOG);\
-}
-
 /*
  * Option management
  */
@@ -160,6 +155,7 @@ view_driver(struct view *view, enum request request)
 	case REQ_MOVE_LAST_LINE:
 	case REQ_MOVE_WHEEL_DOWN:
 	case REQ_MOVE_WHEEL_UP:
+	case REQ_MOVE_CURSOR_CENTER:
 		move_view(view, request);
 		break;
 
@@ -174,6 +170,7 @@ view_driver(struct view *view, enum request request)
 	case REQ_SCROLL_HALF_PAGE_UP:
 	case REQ_SCROLL_WHEEL_DOWN:
 	case REQ_SCROLL_WHEEL_UP:
+	case REQ_SCROLL_CURSOR_CENTER:
 		scroll_view(view, request);
 		break;
 
@@ -769,13 +766,11 @@ read_key_combo(struct keymap *keymap, size_t *num_requests)
 
         if (value)
 	{
-		log("value\n");
             *num_requests = combo.requests;
             return combo.request;
 	}
 	else
 	{
-		log("no value\n");
             *num_requests = 1;
 	    return none_request_vector;
 	}
@@ -930,7 +925,6 @@ main(int argc, const char *argv[])
 	        break;
 	    }
 	    request_vector = read_key_combo(view->keymap, &num_requests);
-	    log("%zu\n", num_requests);
 	    //initial_request_vector[0] = read_key_combo(view->keymap);
 	}
 
