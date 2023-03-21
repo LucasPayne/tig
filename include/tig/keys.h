@@ -72,7 +72,8 @@ enum status_code get_key_value(const char **name, struct key *key);
 /* Looks for a key binding first in the given map, then in the generic map, and
  * lastly in the default keybindings. */
 enum request get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches);
-enum status_code add_keybinding(struct keymap *table, enum request request, const struct key key[], size_t keys);
+enum request *get_keybinding_multiple_requests(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *num_requests);
+enum status_code add_keybinding(struct keymap *table, enum request request, const struct key key[], size_t keys, bool addbind);
 
 const char *get_keys(const struct keymap *keymap, enum request request, bool all);
 #define get_view_key(view, request) get_keys((view)->keymap, request, false)
@@ -93,7 +94,7 @@ struct run_request {
 };
 
 struct run_request *get_run_request(enum request request);
-enum status_code add_run_request(struct keymap *keymap, const struct key key[], size_t keys, const char **argv);
+enum status_code add_run_request(struct keymap *keymap, const struct key key[], size_t keys, const char **argv, bool addbind);
 enum status_code parse_run_request_flags(struct run_request_flags *flags, const char **argv);
 const char *format_run_request_flags(const struct run_request *req);
 

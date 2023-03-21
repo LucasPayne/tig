@@ -60,6 +60,12 @@
 #include <pcre.h>
 #endif
 
+FILE *LOG = NULL;
+#define log(...) {\
+     fprintf(LOG, ##__VA_ARGS__);\
+     fflush(LOG);\
+}
+
 /*
  * Option management
  */
@@ -715,7 +721,8 @@ sighup_handler(int sig)
 }
 
 struct key_combo {
-	enum request request;
+	enum request *request;
+	size_t requests;
 	struct keymap *keymap;
 	size_t bufpos;
 	size_t keys;
@@ -730,7 +737,10 @@ key_combo_handler(struct input *input, struct key *key)
 
 #ifdef NCURSES_MOUSE_VERSION
 	if (key_to_value(key) == KEY_MOUSE) {
-		combo->request = handle_mouse_event();
+		static enum request mouse_event_request[1] = { REQ_NONE };
+		mouse_event_request[0] = handle_mouse_event();
+		combo->request = mouse_event_request;
+		combo->requests = 1;
 		return INPUT_STOP;
 	}
 #endif
@@ -741,20 +751,34 @@ key_combo_handler(struct input *input, struct key *key)
 	string_format_from(input->buf, &combo->bufpos, "%s%s",
 			   combo->bufpos ? " " : "Keys: ", get_key_name(key, 1, false));
 	combo->key[combo->keys++] = *key;
-	combo->request = get_keybinding(combo->keymap, combo->key, combo->keys, &matches);
+	size_t num_requests = 0;
+	combo->request = get_keybinding_multiple_requests(combo->keymap, combo->key, combo->keys, &matches, &num_requests);
+	combo->requests = num_requests;
 
-	if (combo->request == REQ_UNKNOWN)
+	if (combo->request[0] == REQ_UNKNOWN)
 		return matches > 0 ? INPUT_OK : INPUT_STOP;
 	return INPUT_STOP;
 }
 
-static enum request
-read_key_combo(struct keymap *keymap)
+static enum request *
+read_key_combo(struct keymap *keymap, size_t *num_requests)
 {
-	struct key_combo combo = { REQ_NONE, keymap, 0 };
+	static enum request none_request_vector[1] = { REQ_NONE };
+	struct key_combo combo = { none_request_vector, 1, keymap, 0 };
 	char *value = read_prompt_incremental("", false, false, key_combo_handler, &combo);
 
-	return value ? combo.request : REQ_NONE;
+        if (value)
+	{
+		log("value\n");
+            *num_requests = combo.requests;
+            return combo.request;
+	}
+	else
+	{
+		log("no value\n");
+            *num_requests = 1;
+	    return none_request_vector;
+	}
 }
 
 static inline void
@@ -801,6 +825,14 @@ handle_git_prefix(void)
 int
 main(int argc, const char *argv[])
 {
+        LOG = fopen("/tmp/tig_log", "a+");
+	if (!LOG)
+	{
+            fprintf(stderr, "Failed to open log file.\n");
+	    exit(1);
+	}
+	log("---main()---\n");
+
 	const char *codeset = ENCODING_UTF8;
 	bool pager_mode = !isatty(STDIN_FILENO);
 	enum request request = parse_options(argc, argv, pager_mode);
@@ -861,25 +893,66 @@ main(int argc, const char *argv[])
 		run_prompt_command(NULL, script_command);
 	}
 
-	while (view_driver(display[current_view], request)) {
-		view = display[current_view];
-		request = read_key_combo(view->keymap);
-
-		/* Some low-level request handling. This keeps access to
-		 * status_win restricted. */
-		switch (request) {
-		case REQ_UNKNOWN:
-			report("Unknown key, press %s for help",
-			       get_view_key(view, REQ_VIEW_HELP));
-			request = REQ_NONE;
-			break;
-		case REQ_PROMPT:
-			request = open_prompt(view);
-			break;
-		default:
-			break;
+	enum request initial_request_vector[1] = { request };
+	size_t num_requests = 1;
+	enum request *request_vector = initial_request_vector;
+	while (true)
+	{
+	    bool do_exit = false;
+            for (size_t i = 0; i < num_requests; i++)
+	    {
+	        if (view_driver(display[current_view], request_vector[i]))
+	        {
+		    view = display[current_view];
+		    /* Some low-level request handling. This keeps access to
+		     * status_win restricted. */
+		    switch (request) {
+		    case REQ_UNKNOWN:
+		    	report("Unknown key, press %s for help",
+		    	       get_view_key(view, REQ_VIEW_HELP));
+		    	request = REQ_NONE;
+		    	break;
+		    case REQ_PROMPT:
+		    	request = open_prompt(view);
+		    	break;
+		    default:
+		    	break;
+		    }
+	        }
+		else
+		{
+		    do_exit = true;
+                    break;
 		}
+	    }
+	    if (do_exit)
+	    {
+	        break;
+	    }
+	    request_vector = read_key_combo(view->keymap, &num_requests);
+	    log("%zu\n", num_requests);
+	    //initial_request_vector[0] = read_key_combo(view->keymap);
 	}
+
+	////while (view_driver(display[current_view], request)) {
+	//while (view_driver(display[current_view], request)) {
+	//	view = display[current_view];
+
+	//	/* Some low-level request handling. This keeps access to
+	//	 * status_win restricted. */
+	//	switch (request) {
+	//	case REQ_UNKNOWN:
+	//		report("Unknown key, press %s for help",
+	//		       get_view_key(view, REQ_VIEW_HELP));
+	//		request = REQ_NONE;
+	//		break;
+	//	case REQ_PROMPT:
+	//		request = open_prompt(view);
+	//		break;
+	//	default:
+	//		break;
+	//	}
+	//}
 
 	exit(EXIT_SUCCESS);
 

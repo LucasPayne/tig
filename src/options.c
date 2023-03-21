@@ -877,7 +877,7 @@ option_set_command(int argc, const char *argv[])
 
 /* Wants: mode request key */
 static enum status_code
-option_bind_command(int argc, const char *argv[])
+_option_bind_command(int argc, const char *argv[], bool addbind)
 {
 	struct key key[16];
 	size_t keys = 0;
@@ -944,7 +944,7 @@ option_bind_command(int argc, const char *argv[])
 		if (alias != -1) {
 			const char *action = obsolete[alias][1];
 
-			add_keybinding(keymap, get_request(action), key, keys);
+			add_keybinding(keymap, get_request(action), key, keys, addbind);
 			return error("%s has been renamed to %s",
 				     obsolete[alias][0], action);
 		}
@@ -958,7 +958,7 @@ option_bind_command(int argc, const char *argv[])
 			const char *toggle[] = { ":toggle", mapped, arg, NULL};
 			const char *other[] = { mapped, NULL };
 			const char **prompt = *mapped == ':' ? other : toggle;
-			enum status_code code = add_run_request(keymap, key, keys, prompt);
+			enum status_code code = add_run_request(keymap, key, keys, prompt, addbind);
 
 			if (code == SUCCESS)
 				code = error("%s has been replaced by `%s%s%s%s'",
@@ -970,9 +970,21 @@ option_bind_command(int argc, const char *argv[])
 	}
 
 	if (request == REQ_UNKNOWN)
-		return add_run_request(keymap, key, keys, argv + 2);
+		return add_run_request(keymap, key, keys, argv + 2, addbind);
 
-	return add_keybinding(keymap, request, key, keys);
+	return add_keybinding(keymap, request, key, keys, addbind);
+}
+
+static enum status_code
+option_bind_command(int argc, const char *argv[])
+{
+	return _option_bind_command(argc, argv, false);
+}
+
+static enum status_code
+option_addbind_command(int argc, const char *argv[])
+{
+	return _option_bind_command(argc, argv, true);
 }
 
 
@@ -1014,6 +1026,9 @@ set_option(const char *opt, int argc, const char *argv[])
 
 	if (!strcmp(opt, "bind"))
 		return option_bind_command(argc, argv);
+
+	if (!strcmp(opt, "addbind"))
+		return option_addbind_command(argc, argv);
 
 	if (!strcmp(opt, "source"))
 		return option_source_command(argc, argv);
@@ -1543,6 +1558,9 @@ read_repo_config_option(char *name, size_t namelen, char *value, size_t valuelen
 
 	else if (!prefixcmp(name, "tig.bind."))
 		set_repo_config_option(name + 9, value, option_bind_command);
+
+	else if (!prefixcmp(name, "tig.addbind."))
+		set_repo_config_option(name + 12, value, option_addbind_command);
 
 	else if (!prefixcmp(name, "tig."))
 		set_repo_config_option(name + 4, value, option_set_command);

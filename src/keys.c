@@ -18,7 +18,8 @@
 #include "tig/keys.h"
 
 struct keybinding {
-	enum request request;
+	size_t requests;
+	enum request *request;
 	size_t keys;
 	struct key key[1];
 };
@@ -80,7 +81,7 @@ keybinding_matches(const struct keybinding *keybinding, const struct key key[],
 		}
 	}
 
-	if (conflict_ptr && keybinding->request != REQ_NONE)
+	if (conflict_ptr && keybinding->request[0] != REQ_NONE)
 		*conflict_ptr = conflict;
 	return true;
 }
@@ -96,7 +97,7 @@ keybinding_equals(const struct keybinding *keybinding, const struct key key[],
 
 enum status_code
 add_keybinding(struct keymap *table, enum request request,
-	       const struct key key[], size_t keys)
+	       const struct key key[], size_t keys, bool addbind)
 {
 	struct keybinding *keybinding;
 	char buf[SIZEOF_STR];
@@ -105,12 +106,28 @@ add_keybinding(struct keymap *table, enum request request,
 
 	for (i = 0; i < table->size; i++) {
 		if (keybinding_equals(table->data[i], key, keys, &conflict)) {
-			enum request old_request = table->data[i]->request;
+                        
+			enum request old_request = table->data[i]->request[0];
 			const char *old_name;
 
-			table->data[i]->request = request;
-			if (!conflict)
-				return SUCCESS;
+			if (addbind)
+			{
+				table->data[i]->requests++;
+                                table->data[i]->request = realloc(table->data[i]->request, table->data[i]->requests * sizeof(enum request));
+	                        if (!table->data[i]->request)
+	                        	die("Failed to allocate keybinding request");
+				table->data[i]->request[table->data[i]->requests - 1] = request;
+			}
+			else
+			{
+                            table->data[i]->requests = 1;
+                            table->data[i]->request = realloc(table->data[i]->request, 1 * sizeof(enum request));
+	                    if (!table->data[i]->request)
+	                    	die("Failed to allocate keybinding request");
+			    table->data[i]->request[0] = request;
+			}
+		        if (!conflict)
+		    	    return SUCCESS;
 
 			old_name = get_request_name(old_request);
 			string_ncopy(buf, old_name, strlen(old_name));
@@ -127,40 +144,51 @@ add_keybinding(struct keymap *table, enum request request,
 
 	memcpy(keybinding->key, key, sizeof(*key) * keys);
 	keybinding->keys = keys;
-	keybinding->request = request;
+	keybinding->requests = 1;
+	keybinding->request = calloc(1, sizeof(enum request));
+	if (!keybinding->request)
+		die("Failed to allocate keybinding request");
+	keybinding->request[0] = request;
 	table->data[table->size++] = keybinding;
 	return SUCCESS;
 }
 
-static enum request
-get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+static enum request *
+get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *num_requests)
 {
-	enum request request = REQ_UNKNOWN;
+	static enum request unknown_request_vector[1] = { REQ_UNKNOWN };
+	enum request *request = unknown_request_vector;
+	*num_requests = 1;
 	size_t i;
 
 	for (i = 0; i < keymap->size; i++)
 		if (keybinding_matches(keymap->data[i], key, keys, NULL)) {
-			if (matches && keymap->data[i]->request != REQ_NONE)
+			if (matches && keymap->data[i]->request[0] != REQ_NONE)
 				(*matches)++;
 			/* Overriding keybindings, might have been added
 			 * at the end of the keymap so we need to
 			 * iterate all keybindings. */
 			if (keymap->data[i]->keys == keys)
+			{
 				request = keymap->data[i]->request;
+				*num_requests = keymap->data[i]->requests;
+			}
 		}
 
 	return request;
 }
 
 /* Looks for a key binding first in the given keymap, then in the generic keymap. */
-enum request
-get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+enum request *
+get_keybinding_multiple_requests(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *out_num_requests)
 {
-	enum request request = get_keybinding_in_keymap(keymap, key, keys, matches);
+	size_t num_requests = 0;
+	enum request *request = get_keybinding_in_keymap(keymap, key, keys, matches, &num_requests);
 
 	if (!is_search_keymap(keymap)) {
 		int generic_matches = 0;
-		enum request generic_request = get_keybinding_in_keymap(generic_keymap, key, keys, &generic_matches);
+		size_t generic_num_requests = 0;
+		enum request *generic_request = get_keybinding_in_keymap(generic_keymap, key, keys, &generic_matches, &generic_num_requests);
 
 		/* Include generic matches iff there are more than one
 		 * so unbound keys in the current keymap still override
@@ -173,13 +201,35 @@ get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys,
 		 *   bind generic qa quit  # 'qa' will quit
 		 *   bind main    qn next  # 'qn' will move to next entry
 		 */
-		if (matches && (request == REQ_UNKNOWN || generic_matches > 1))
+		if (matches && (request[0] == REQ_UNKNOWN || generic_matches > 1))
 			(*matches) += generic_matches;
-		if (request == REQ_UNKNOWN)
+		if (request[0] == REQ_UNKNOWN)
+		{
 			request = generic_request;
+			num_requests = generic_num_requests;
+		}
 	}
 
-	return request == REQ_NONE ? REQ_UNKNOWN : request;
+        static enum request unknown_request_vector[1] = { REQ_UNKNOWN };
+	if (request[0] == REQ_NONE)
+	{
+            *out_num_requests = 1;
+	    return unknown_request_vector;
+	}
+	else
+        {
+            *out_num_requests = num_requests;
+	    return request;
+	}
+}
+
+//---shouldn't even have this function
+enum request
+get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+{
+    size_t num_requests = 0;
+    enum request *request = get_keybinding_multiple_requests(keymap, key, keys, matches, &num_requests);
+    return request[0];
 }
 
 
@@ -405,7 +455,7 @@ append_keymap_request_keys(char *buf, size_t *pos, enum request request,
 	int i;
 
 	for (i = 0; i < keymap->size; i++) {
-		if (keymap->data[i]->request == request) {
+		if (keymap->data[i]->request[0] == request) {
 			if (!append_key(buf, pos, keymap->data[i], all))
 				return false;
 			if (!all)
@@ -486,7 +536,7 @@ parse_run_request_flags(struct run_request_flags *flags, const char **argv)
 
 enum status_code
 add_run_request(struct keymap *keymap, const struct key key[],
-		size_t keys, const char **argv)
+		size_t keys, const char **argv, bool addbind)
 {
 	struct run_request *req;
 	struct run_request_flags flags = {0};
@@ -505,7 +555,7 @@ add_run_request(struct keymap *keymap, const struct key key[],
 	req->flags = flags;
 	req->keymap = keymap;
 
-	return add_keybinding(keymap, REQ_RUN_REQUESTS + run_requests, key, keys);
+	return add_keybinding(keymap, REQ_RUN_REQUESTS + run_requests, key, keys, addbind);
 }
 
 struct run_request *
@@ -577,7 +627,7 @@ foreach_key_visit(struct key_visitor_state *state, const char *group,
 	}
 
 	for (i = 0; i < keymap->size; i++) {
-		if (keymap->data[i]->request == request) {
+		if (keymap->data[i]->request[0] == request) {
 			struct keybinding *keybinding = keymap->data[i];
 			const char *key = get_key_name(keybinding->key, keybinding->keys, false);
 
