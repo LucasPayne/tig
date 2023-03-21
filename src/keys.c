@@ -81,7 +81,7 @@ keybinding_matches(const struct keybinding *keybinding, const struct key key[],
 		}
 	}
 
-	if (conflict_ptr && keybinding->request != REQ_NONE)
+	if (conflict_ptr && keybinding->request[0] != REQ_NONE)
 		*conflict_ptr = conflict;
 	return true;
 }
@@ -107,14 +107,27 @@ add_keybinding(struct keymap *table, enum request request,
 	for (i = 0; i < table->size; i++) {
 		if (keybinding_equals(table->data[i], key, keys, &conflict)) {
                         
-                        table->data[i]->request = realloc(table->data[i]->request, 1 * sizeof(enum request));
-                        table->data[i]->requests = 1;
-			table->data[i]->request[0] = request;
-			if (!conflict)
-				return SUCCESS;
-
-			enum request old_request = table->data[i]->request;
+			enum request old_request = table->data[i]->request[0];
 			const char *old_name;
+
+			if (addbind)
+			{
+				table->data[i]->requests++;
+                                table->data[i]->request = realloc(table->data[i]->request, table->data[i]->requests * sizeof(enum request));
+	                        if (!table->data[i]->request)
+	                        	die("Failed to allocate keybinding request");
+				table->data[i]->request[table->data[i]->requests - 1] = request;
+			}
+			else
+			{
+                            table->data[i]->requests = 1;
+                            table->data[i]->request = realloc(table->data[i]->request, 1 * sizeof(enum request));
+	                    if (!table->data[i]->request)
+	                    	die("Failed to allocate keybinding request");
+			    table->data[i]->request[0] = request;
+			}
+		        if (!conflict)
+		    	    return SUCCESS;
 
 			old_name = get_request_name(old_request);
 			string_ncopy(buf, old_name, strlen(old_name));
@@ -134,7 +147,7 @@ add_keybinding(struct keymap *table, enum request request,
 	keybinding->requests = 1;
 	keybinding->request = calloc(1, sizeof(enum request));
 	if (!keybinding->request)
-		die("Failed to allocate keybinding");
+		die("Failed to allocate keybinding request");
 	keybinding->request[0] = request;
 	table->data[table->size++] = keybinding;
 	return SUCCESS;
