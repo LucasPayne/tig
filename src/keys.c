@@ -153,10 +153,12 @@ add_keybinding(struct keymap *table, enum request request,
 	return SUCCESS;
 }
 
-static enum request
-get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+static enum request *
+get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *num_requests)
 {
-	enum request request = REQ_UNKNOWN;
+	static enum request unknown_request_vector[1] = { REQ_UNKNOWN };
+	enum request *request = unknown_request_vector;
+	*num_requests = 1;
 	size_t i;
 
 	for (i = 0; i < keymap->size; i++)
@@ -167,21 +169,26 @@ get_keybinding_in_keymap(const struct keymap *keymap, const struct key key[], si
 			 * at the end of the keymap so we need to
 			 * iterate all keybindings. */
 			if (keymap->data[i]->keys == keys)
-				request = keymap->data[i]->request[0];
+			{
+				request = keymap->data[i]->request;
+				*num_requests = keymap->data[i]->requests;
+			}
 		}
 
 	return request;
 }
 
 /* Looks for a key binding first in the given keymap, then in the generic keymap. */
-enum request
-get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+enum request *
+get_keybinding_multiple_requests(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *out_num_requests)
 {
-	enum request request = get_keybinding_in_keymap(keymap, key, keys, matches);
+	size_t num_requests = 0;
+	enum request *request = get_keybinding_in_keymap(keymap, key, keys, matches, &num_requests);
 
 	if (!is_search_keymap(keymap)) {
 		int generic_matches = 0;
-		enum request generic_request = get_keybinding_in_keymap(generic_keymap, key, keys, &generic_matches);
+		size_t generic_num_requests = 0;
+		enum request *generic_request = get_keybinding_in_keymap(generic_keymap, key, keys, &generic_matches, &generic_num_requests);
 
 		/* Include generic matches iff there are more than one
 		 * so unbound keys in the current keymap still override
@@ -194,13 +201,35 @@ get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys,
 		 *   bind generic qa quit  # 'qa' will quit
 		 *   bind main    qn next  # 'qn' will move to next entry
 		 */
-		if (matches && (request == REQ_UNKNOWN || generic_matches > 1))
+		if (matches && (request[0] == REQ_UNKNOWN || generic_matches > 1))
 			(*matches) += generic_matches;
-		if (request == REQ_UNKNOWN)
+		if (request[0] == REQ_UNKNOWN)
+		{
 			request = generic_request;
+			num_requests = generic_num_requests;
+		}
 	}
 
-	return request == REQ_NONE ? REQ_UNKNOWN : request;
+        static enum request unknown_request_vector[1] = { REQ_UNKNOWN };
+	if (request[0] == REQ_NONE)
+	{
+            *out_num_requests = 1;
+	    return unknown_request_vector;
+	}
+	else
+        {
+            *out_num_requests = num_requests;
+	    return request;
+	}
+}
+
+//---shouldn't even have this function
+enum request
+get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches)
+{
+    size_t num_requests = 0;
+    enum request *request = get_keybinding_multiple_requests(keymap, key, keys, matches, &num_requests);
+    return request[0];
 }
 
 

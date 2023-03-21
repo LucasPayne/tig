@@ -72,6 +72,7 @@ enum status_code get_key_value(const char **name, struct key *key);
 /* Looks for a key binding first in the given map, then in the generic map, and
  * lastly in the default keybindings. */
 enum request get_keybinding(const struct keymap *keymap, const struct key key[], size_t keys, int *matches);
+enum request *get_keybinding_multiple_requests(const struct keymap *keymap, const struct key key[], size_t keys, int *matches, size_t *num_requests);
 enum status_code add_keybinding(struct keymap *table, enum request request, const struct key key[], size_t keys, bool addbind);
 
 const char *get_keys(const struct keymap *keymap, enum request request, bool all);
