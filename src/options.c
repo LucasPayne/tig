@@ -877,7 +877,7 @@ option_set_command(int argc, const char *argv[])
 
 /* Wants: mode request key */
 static enum status_code
-option_bind_command(int argc, const char *argv[])
+option_bind_command(int argc, const char *argv[], bool addbind)
 {
 	struct key key[16];
 	size_t keys = 0;
@@ -944,7 +944,7 @@ option_bind_command(int argc, const char *argv[])
 		if (alias != -1) {
 			const char *action = obsolete[alias][1];
 
-			add_keybinding(keymap, get_request(action), key, keys);
+			add_keybinding(keymap, get_request(action), key, keys, addbind);
 			return error("%s has been renamed to %s",
 				     obsolete[alias][0], action);
 		}
@@ -958,7 +958,7 @@ option_bind_command(int argc, const char *argv[])
 			const char *toggle[] = { ":toggle", mapped, arg, NULL};
 			const char *other[] = { mapped, NULL };
 			const char **prompt = *mapped == ':' ? other : toggle;
-			enum status_code code = add_run_request(keymap, key, keys, prompt);
+			enum status_code code = add_run_request(keymap, key, keys, prompt, addbind);
 
 			if (code == SUCCESS)
 				code = error("%s has been replaced by `%s%s%s%s'",
@@ -970,9 +970,9 @@ option_bind_command(int argc, const char *argv[])
 	}
 
 	if (request == REQ_UNKNOWN)
-		return add_run_request(keymap, key, keys, argv + 2);
+		return add_run_request(keymap, key, keys, argv + 2, addbind);
 
-	return add_keybinding(keymap, request, key, keys);
+	return add_keybinding(keymap, request, key, keys, addbind);
 }
 
 
@@ -1013,7 +1013,10 @@ set_option(const char *opt, int argc, const char *argv[])
 		return option_set_command(argc, argv);
 
 	if (!strcmp(opt, "bind"))
-		return option_bind_command(argc, argv);
+		return option_bind_command(argc, argv, false);
+
+	if (!strcmp(opt, "addbind"))
+		return option_bind_command(argc, argv, true);
 
 	if (!strcmp(opt, "source"))
 		return option_source_command(argc, argv);

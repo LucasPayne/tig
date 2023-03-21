@@ -18,7 +18,8 @@
 #include "tig/keys.h"
 
 struct keybinding {
-	enum request request;
+	size_t requests;
+	enum request *request;
 	size_t keys;
 	struct key key[1];
 };
@@ -96,7 +97,7 @@ keybinding_equals(const struct keybinding *keybinding, const struct key key[],
 
 enum status_code
 add_keybinding(struct keymap *table, enum request request,
-	       const struct key key[], size_t keys)
+	       const struct key key[], size_t keys, bool addbind)
 {
 	struct keybinding *keybinding;
 	char buf[SIZEOF_STR];
@@ -105,12 +106,15 @@ add_keybinding(struct keymap *table, enum request request,
 
 	for (i = 0; i < table->size; i++) {
 		if (keybinding_equals(table->data[i], key, keys, &conflict)) {
-			enum request old_request = table->data[i]->request;
-			const char *old_name;
-
-			table->data[i]->request = request;
+                        
+                        table->data[i]->request = realloc(table->data[i]->request, 1 * sizeof(enum request));
+                        table->data[i]->requests = 1;
+			table->data[i]->request[0] = request;
 			if (!conflict)
 				return SUCCESS;
+
+			enum request old_request = table->data[i]->request;
+			const char *old_name;
 
 			old_name = get_request_name(old_request);
 			string_ncopy(buf, old_name, strlen(old_name));
@@ -127,7 +131,11 @@ add_keybinding(struct keymap *table, enum request request,
 
 	memcpy(keybinding->key, key, sizeof(*key) * keys);
 	keybinding->keys = keys;
-	keybinding->request = request;
+	keybinding->requests = 1;
+	keybinding->request = calloc(1, sizeof(enum request));
+	if (!keybinding->request)
+		die("Failed to allocate keybinding");
+	keybinding->request[0] = request;
 	table->data[table->size++] = keybinding;
 	return SUCCESS;
 }
@@ -486,7 +494,7 @@ parse_run_request_flags(struct run_request_flags *flags, const char **argv)
 
 enum status_code
 add_run_request(struct keymap *keymap, const struct key key[],
-		size_t keys, const char **argv)
+		size_t keys, const char **argv, bool addbind)
 {
 	struct run_request *req;
 	struct run_request_flags flags = {0};
@@ -505,7 +513,7 @@ add_run_request(struct keymap *keymap, const struct key key[],
 	req->flags = flags;
 	req->keymap = keymap;
 
-	return add_keybinding(keymap, REQ_RUN_REQUESTS + run_requests, key, keys);
+	return add_keybinding(keymap, REQ_RUN_REQUESTS + run_requests, key, keys, addbind);
 }
 
 struct run_request *
