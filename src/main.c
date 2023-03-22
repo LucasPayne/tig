@@ -618,7 +618,8 @@ main_select(struct view *view, struct line *line)
 			string_ncopy(view->ref, state->reflog[line->lineno - 1],
 				     strlen(state->reflog[line->lineno - 1]));
 		} else {
-			string_copy_rev(view->ref, commit->id);
+			//string_copy_rev(view->ref, commit->id);
+		        string_ncopy(view->ref, commit->title, strlen(commit->title));
 		}
 		if (ref)
 			ref_update_env(view->env, ref, true);
