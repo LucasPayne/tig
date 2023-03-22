@@ -60,6 +60,8 @@
 #include <pcre.h>
 #endif
 
+extern bool g_DIFF_BRANCHFROM;
+
 FILE *LOG = NULL;
 /*
  * Option management
@@ -188,6 +190,11 @@ view_driver(struct view *view, enum request request)
 			open_stage_view(view, NULL, 0, OPEN_DEFAULT);
 		else
 			open_diff_view(view, OPEN_DEFAULT);
+		break;
+	case REQ_VIEW_DIFF_BRANCHFROM:
+		g_DIFF_BRANCHFROM = true;
+		open_diff_view(view, OPEN_DEFAULT);
+		g_DIFF_BRANCHFROM = false;
 		break;
 	case REQ_VIEW_LOG:
 		open_log_view(view, OPEN_DEFAULT);

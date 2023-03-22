@@ -566,15 +566,22 @@ main_request(struct view *view, enum request request, struct line *line)
 				view->parent = NULL;
 		}
 
-		if (line->type == LINE_STAT_UNSTAGED
-		    || line->type == LINE_STAT_STAGED)
-			open_stage_view(view, NULL, line->type, flags);
-		else if (line->type == LINE_STAT_UNTRACKED)
-			open_status_view(view, true, flags);
+                if ( g_DIFF_BRANCHFROM )
+		{
+		    open_diff_view(view, flags);
+		}
 		else
-			open_diff_view(view, flags);
+		{
+		    if (line->type == LINE_STAT_UNSTAGED
+		        || line->type == LINE_STAT_STAGED)
+		    	open_stage_view(view, NULL, line->type, flags);
+		    else if (line->type == LINE_STAT_UNTRACKED)
+		    	open_status_view(view, true, flags);
+		    else
+		    	open_diff_view(view, flags);
+		}
 
-                g_DIFF_BRANCHFROM = false;
+	        g_DIFF_BRANCHFROM = false;
 
 		break;
 
