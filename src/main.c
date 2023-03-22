@@ -26,6 +26,8 @@
 #include "tig/diff.h"
 #include "tig/search.h"
 
+extern bool g_DIFF_BRANCHFROM;
+
 /*
  * Main view backend
  */
@@ -551,7 +553,12 @@ main_request(struct view *view, enum request request, struct line *line)
 
 	switch (request) {
 	case REQ_VIEW_DIFF:
+	case REQ_VIEW_DIFF_BRANCHFROM:
 	case REQ_ENTER:
+                g_DIFF_BRANCHFROM = request == REQ_VIEW_DIFF_BRANCHFROM;
+
+		if ( g_DIFF_BRANCHFROM ) log("branchfrom\n");
+
 		if ((view_is_displayed(view) && display[0] != view) ||
 		    (!view_is_displayed(view) && flags == OPEN_SPLIT)) {
 			maximize_view(view, true);
@@ -566,6 +573,9 @@ main_request(struct view *view, enum request request, struct line *line)
 			open_status_view(view, true, flags);
 		else
 			open_diff_view(view, flags);
+
+                g_DIFF_BRANCHFROM = false;
+
 		break;
 
 	case REQ_REFRESH:

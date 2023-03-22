@@ -22,16 +22,28 @@
 #include "tig/draw.h"
 #include "tig/apps.h"
 
+bool g_DIFF_BRANCHFROM = false;
+
 static enum status_code
-diff_open(struct view *view, enum open_flags flags)
+_diff_open(struct view *view, enum open_flags flags, bool branchfrom)
 {
-	const char *diff_argv[] = {
+	const char *_diff_argv[] = {
 		"git", "show", encoding_arg, "--pretty=format:", "--root",
 			"--patch-with-stat", use_mailmap_arg(),
 			show_notes_arg(), diff_context_arg(), ignore_space_arg(),
 			DIFF_ARGS, "%(cmdlineargs)", "--no-color", word_diff_arg(),
 			"%(commit)", "--", "%(fileargs)", NULL
 	};
+	const char *_diff_branchfrom_argv[] = {
+		"git", "diff", "--pretty=format:", "--root", "--patch-with-stat", "--no-color", "branchfrom", NULL
+	};
+	const char **diff_argv = branchfrom ? _diff_branchfrom_argv : _diff_argv;
+	
+	//for ( const char **diff_argv_p = diff_argv ; *diff_argv_p ; diff_argv_p++ )
+	//{
+	//    log("    %s\n", *diff_argv_p);
+	//}
+
 	enum status_code code;
 
 	diff_save_line(view, view->private, flags);
@@ -41,6 +53,12 @@ diff_open(struct view *view, enum open_flags flags)
 		return code;
 
 	return diff_init_highlight(view, view->private);
+}
+
+static enum status_code
+diff_open(struct view *view, enum open_flags flags)
+{
+    return _diff_open(view, flags, g_DIFF_BRANCHFROM);
 }
 
 enum status_code

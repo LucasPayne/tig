@@ -8,6 +8,9 @@ Added move-cursor-center and scroll-cursor-center.
 
 Added move-cursor-top and move-cursor-bottom.
 
+Added view-diff-branchfrom.
+Compare the working tree against a tag called branchfrom.
+
 
 Tig: text-mode interface for Git
 ================================

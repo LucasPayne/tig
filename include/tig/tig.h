@@ -186,6 +186,7 @@ void TIG_NORETURN usage(const char *message);
 #define VIEW_INFO(_) \
 	_(MAIN,   main), \
 	_(DIFF,   diff), \
+	_(DIFF_BRANCHFROM,   diff), \
 	_(LOG,    log), \
 	_(REFLOG, reflog), \
 	_(TREE,   tree), \
