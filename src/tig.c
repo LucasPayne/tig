@@ -156,6 +156,8 @@ view_driver(struct view *view, enum request request)
 	case REQ_MOVE_WHEEL_DOWN:
 	case REQ_MOVE_WHEEL_UP:
 	case REQ_MOVE_CURSOR_CENTER:
+	case REQ_MOVE_CURSOR_TOP:
+	case REQ_MOVE_CURSOR_BOTTOM:
 		move_view(view, request);
 		break;
 
@@ -925,28 +927,7 @@ main(int argc, const char *argv[])
 	        break;
 	    }
 	    request_vector = read_key_combo(view->keymap, &num_requests);
-	    //initial_request_vector[0] = read_key_combo(view->keymap);
 	}
-
-	////while (view_driver(display[current_view], request)) {
-	//while (view_driver(display[current_view], request)) {
-	//	view = display[current_view];
-
-	//	/* Some low-level request handling. This keeps access to
-	//	 * status_win restricted. */
-	//	switch (request) {
-	//	case REQ_UNKNOWN:
-	//		report("Unknown key, press %s for help",
-	//		       get_view_key(view, REQ_VIEW_HELP));
-	//		request = REQ_NONE;
-	//		break;
-	//	case REQ_PROMPT:
-	//		request = open_prompt(view);
-	//		break;
-	//	default:
-	//		break;
-	//	}
-	//}
 
 	exit(EXIT_SUCCESS);
 

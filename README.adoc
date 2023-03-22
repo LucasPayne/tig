@@ -6,6 +6,8 @@ an arbitrary sequence of actions by using bind, then multiple addbinds.
 
 Added move-cursor-center and scroll-cursor-center.
 
+Added move-cursor-top and move-cursor-bottom.
+
 
 Tig: text-mode interface for Git
 ================================

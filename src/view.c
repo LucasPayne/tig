@@ -246,6 +246,18 @@ move_view(struct view *view, enum request request)
 		steps = view->height/2 - (view->pos.lineno - view->pos.offset);
 		break;
 
+	case REQ_MOVE_CURSOR_TOP:
+		steps = -(view->pos.lineno - view->pos.offset);
+		break;
+
+	case REQ_MOVE_CURSOR_BOTTOM:
+		steps = view->height - (view->pos.lineno - view->pos.offset) - 1;
+		if ( view->pos.lineno + steps >= view->lines )
+		{
+                    steps = view->lines - view->pos.lineno - 1;
+		}
+		break;
+
 	case REQ_MOVE_UP:
 	case REQ_PREVIOUS:
 		steps = -1;
