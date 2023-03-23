@@ -767,7 +767,7 @@ update_view_title(struct view *view)
 
 	if (line)
 	{
-	    if (line->type == LINE_DIFF_STAT)
+	    if (!opt_file_args && line->type == LINE_DIFF_STAT)
 	    {
                 view->show_preview = true;
                 resize_display();
