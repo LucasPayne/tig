@@ -21,6 +21,8 @@
 #include "tig/draw.h"
 #include "tig/display.h"
 
+#include "tig/io.h"
+
 /*
  * Navigation
  */
@@ -599,6 +601,50 @@ view_exec(struct view *view, enum open_flags flags)
 enum status_code
 begin_update(struct view *view, const char *dir, const char **argv, enum open_flags flags)
 {
+	if (!g_BEGIN_UPDATE_IGNORE_FEATURE)
+	{
+            if (view->argv_diff) 
+            {
+                for ( char **argv_p = &view->argv_diff[0]; *argv_p; argv_p++ )
+                {
+                    free(*argv_p);
+                }
+                free(view->argv_diff);
+            }
+            if (strcmp(view->name, "diff") != 0 || strcmp(view->name, "stage") != 0)
+	    {
+	        size_t argv_length = 0;
+	        for ( const char **argv_p = &argv[0]; *argv_p && strcmp(*argv_p, "--") != 0; argv_p++ ) argv_length += 1;
+	        view->argv_diff = calloc(argv_length + 1, sizeof(const char *));
+	        view->argv_diff[argv_length] = NULL;
+	        for (size_t i = 0; i < argv_length; i++)
+	        {
+		    // TODO: Expand these instead of throwing them out.
+		    char string[2048];
+		    if (strcmp(argv[i], "%(commit)") == 0)
+		    {
+	    	        view->argv_diff[i] = calloc(strlen(view->env->commit)+1, sizeof(char));
+                        strncpy(view->argv_diff[i], view->env->commit, strlen(view->env->commit));
+		    }
+		    else if (sscanf(argv[i], "%%(%s)", string) != 0)
+		    {
+	    	        view->argv_diff[i] = calloc(1, sizeof(char));
+	    	        strncpy(view->argv_diff[i], "", 1);
+		    }
+		    else
+		    {
+	    	        view->argv_diff[i] = calloc(strlen(argv[i])+1, sizeof(char));
+                        strncpy(view->argv_diff[i], argv[i], strlen(argv[i]));
+		    }
+	        }
+	    }
+	    else
+	    {
+                view->argv_diff = calloc(1, sizeof(char *));
+	        view->argv_diff[0] = NULL;
+	    }
+	}
+
 	bool extra = !!(flags & (OPEN_EXTRA));
 	bool refresh = flags & (OPEN_REFRESH | OPEN_PREPARED | OPEN_STDIN);
 
@@ -711,8 +757,99 @@ update_view(struct view *view)
 void
 update_view_title(struct view *view)
 {
+        //log("update_view_title\n");
 	WINDOW *window = view->title;
 	struct line *line = &view->line[view->pos.lineno];
+
+	if (line)
+	{
+	    if (line->type == LINE_DIFF_STAT)
+	    {
+                view->show_preview = true;
+                resize_display();
+	        redraw_view(view);
+	        werase(view->preview);
+
+		//const char *commit = view->ref;
+		//const char *file = "test";
+		//char args[2048];
+                //snprintf(args, 2048-1, "git show --pretty=format: --root --no-color %s -- %s", commit, file);
+	        //mvwprintw(view->preview, 0, 0, "%s", args);
+
+		char cmd[2048];
+		cmd[0] = '\0';
+                size_t c = 0;
+		for ( char **argv_p = &view->argv_diff[0]; *argv_p; argv_p++ )
+		{
+		    strcat(cmd, *argv_p);
+                    c += strlen(*argv_p);
+		    strcat(cmd, " ");
+		    c += 1;
+		}
+                //curses doesn't actually interpret ansi color sequences.
+		//strcat(cmd, " --color=always ");
+		strcat(cmd, " -- ");
+		strcat(cmd, view->env->file);
+
+	    //mvwprintw(view->preview, 0, 0, "%s", cmd);
+
+                FILE *fp = popen(cmd, "r");
+		if (!fp)
+		{
+	            mvwprintw(view->preview, 0, 0, "error!");
+		}
+		size_t lineno = 0;
+		char linebuf[2048];
+		for (int i = 0; i < 7 && fgets(linebuf, sizeof(linebuf), fp) != NULL; i++); //get rid of header
+                while (lineno < view->height && fgets(linebuf, sizeof(linebuf), fp) != NULL) {
+                    enum line_type type;
+                    if (strncmp(linebuf, "@@", 2) == 0)
+		    {
+			    type = LINE_DIFF_CHUNK;
+		    }
+		    else if (strncmp(linebuf, "+", 1) == 0)
+		    {
+			    type = LINE_DIFF_ADD;
+		    }
+		    else if (strncmp(linebuf, "-", 1) == 0)
+		    {
+			    type = LINE_DIFF_DEL;
+		    }
+		    else
+		    {
+			    type = LINE_DEFAULT;
+		    }
+		    (void) wattrset(view->preview, get_view_attr(view, type));
+		    wchgat(view->preview, -1, 0, get_view_color(view, type), NULL);
+		    //(void) wattron(view->preview, get_view_attr(view, type));
+                    mvwprintw(view->preview, lineno, 0, "%s\n", linebuf);
+		    lineno += 1;
+                }
+		
+		//struct box *box = line->data;
+	        //mvwprintw(view->preview, 0, 0, "[%s]", box->text);
+                //io_exec(&view->io, IO_RD, view->dir, NULL, const char *argv[], int custom)
+	        wnoutrefresh(view->preview);
+	    }
+	    else
+	    {
+                if (view->show_preview)
+                {
+                    view->show_preview = false;
+                    resize_display();
+	            redraw_view(view);
+                }
+	    }
+	}
+	//might not need this
+	//else if (view->show_preview)
+	//{
+        //            view->show_preview = false;
+        //            resize_display();
+	//            redraw_view(view);
+	//}
+
+
 	unsigned int view_lines, lines;
 	int update_increment = view_has_flags(view, VIEW_LOG_LIKE | VIEW_GREP_LIKE)
 			       ? 100

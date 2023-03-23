@@ -23,6 +23,7 @@
 #include "tig/apps.h"
 
 bool g_DIFF_BRANCHFROM = false;
+bool g_BEGIN_UPDATE_IGNORE_FEATURE = false;
 
 static enum status_code
 _diff_open(struct view *view, enum open_flags flags, bool branchfrom)
@@ -35,10 +36,28 @@ _diff_open(struct view *view, enum open_flags flags, bool branchfrom)
 			"%(commit)", "--", "%(fileargs)", NULL
 	};
 	const char *_diff_branchfrom_argv[] = {
-		"git", "diff", "--pretty=format:", "--root", "--patch-with-stat", "--no-color", "branchfrom", NULL
+		"git", "diff", "--pretty=format:", "--root", "--patch-with-stat", "--no-color", "branchfrom", "--", "%(fileargs)", NULL
 	};
+
 	const char **diff_argv = branchfrom ? _diff_branchfrom_argv : _diff_argv;
+
+//
+//	g_DIFF_PREVIEW_ARGS
+//	if (branchfrom)
+//	{
+//
+//		"git", "show", encoding_arg, "--pretty=format:", "--root",
+//			"--patch-with-stat", use_mailmap_arg(),
+//			show_notes_arg(), diff_context_arg(), ignore_space_arg(),
+//			DIFF_ARGS, "%(cmdlineargs)", "--no-color", word_diff_arg(),
+//			"%(commit)", "--", "%(fileargs)", NULL
+//	}
+//	else
+//	{
+//
+//	}
 	
+	//log("diff_open\n");
 	//for ( const char **diff_argv_p = diff_argv ; *diff_argv_p ; diff_argv_p++ )
 	//{
 	//    log("    %s\n", *diff_argv_p);
@@ -564,7 +583,9 @@ diff_read(struct view *view, struct buffer *buf, bool force_stop)
 
 		if (!state->adding_describe_ref && !ref_list_contains_tag(view->vid)) {
 			const char *describe_argv[] = { "git", "describe", view->vid, NULL };
+			g_BEGIN_UPDATE_IGNORE_FEATURE = true;
 			enum status_code code = begin_update(view, NULL, describe_argv, OPEN_EXTRA);
+			g_BEGIN_UPDATE_IGNORE_FEATURE = false;
 
 			if (code != SUCCESS) {
 				report("Failed to load describe data: %s", get_status_message(code));

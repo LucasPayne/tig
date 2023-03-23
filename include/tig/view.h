@@ -111,6 +111,9 @@ struct view {
 	int height, width;	/* The width and height of the main window */
 	WINDOW *win;		/* The main window */
 	WINDOW *title;		/* The title window */
+	bool show_preview;
+	WINDOW *preview;	/* The preview window */
+	WINDOW *preview_separator;
 
 	struct keymap *keymap;	/* What keymap does this view have */
 	struct sort_state sort;	/* Sorting information. */
@@ -157,6 +160,8 @@ struct view {
 	struct encoding *encoding;
 	bool unrefreshable;
 	struct watch watch;
+
+	char **argv_diff;
 
 	/* Private data */
 	void *private;

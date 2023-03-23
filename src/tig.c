@@ -63,6 +63,7 @@
 extern bool g_DIFF_BRANCHFROM;
 
 FILE *LOG = NULL;
+int g_COUNTER = 0;
 /*
  * Option management
  */

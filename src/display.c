@@ -30,6 +30,8 @@ unsigned int current_view;
 
 static WINDOW *display_win[2];
 static WINDOW *display_title[2];
+static WINDOW *display_preview[2];
+static WINDOW *display_preview_separator[2];
 static WINDOW *display_sep;
 
 struct display_tty {
@@ -282,8 +284,13 @@ resize_display(void)
 	x = y = 0;
 
 	foreach_displayed_view (view, i) {
+
+		float fraction = 7.f/18.f;
+		int win_width = view->show_preview ? (int)(view->width * fraction) : view->width;
+		int preview_width = view->width - win_width - 1;
 		if (!display_win[i]) {
-			display_win[i] = newwin(view->height, view->width, y, x);
+
+			display_win[i] = newwin(view->height, win_width, y, x);
 			if (!display_win[i])
 				die("Failed to create %s view", view->name);
 
@@ -294,14 +301,54 @@ resize_display(void)
 				die("Failed to create title window");
 
 		} else {
-			wresize(display_win[i], view->height, view->width);
+			wresize(display_win[i], view->height, win_width);
 			mvwin(display_win[i], y, x);
 			wresize(display_title[i], 1, view->width);
 			mvwin(display_title[i], y + view->height, x);
 		}
 
+                if (view->show_preview)
+		{
+		    if (!display_preview[i])
+		    {
+		        display_preview_separator[i] = newwin(view->height, 1, y, x + win_width);
+		        if (!display_preview_separator[i])
+		        	die("Failed to create preview separator window");
+		        display_preview[i] = newwin(view->height, preview_width, y, x + win_width + 1);
+		        if (!display_preview[i])
+		        	die("Failed to create preview window");
+		    }
+		    else
+		    {
+			wresize(display_preview_separator[i], view->height, 1);
+			mvwin(display_preview[i], y, x + win_width);
+
+			wresize(display_preview[i], view->height, preview_width);
+			mvwin(display_preview[i], y, x + win_width + 1);
+		    }
+                    werase(display_preview_separator[i]);
+		    int lineno = 0;
+		    while (mvwaddstr(display_preview_separator[i], lineno++, 0, "│") == OK);
+		    //while (mvwaddch(display_preview_separator[i], lineno++, 0, '|') == OK);
+		    wnoutrefresh(display_preview_separator[i]);
+		}
+		else
+		{
+                    if (display_preview[i])
+		    {
+                        delwin(display_preview[i]);
+			display_preview[i] = NULL;
+
+                        delwin(display_preview_separator[i]);
+			display_preview_separator[i] = NULL;
+		    }
+		}
+
+
 		view->win = display_win[i];
 		view->title = display_title[i];
+		view->preview = display_preview[i];
+		view->preview_separator = display_preview_separator[i];
 
 		if (vsplit)
 			x += view->width + 1;

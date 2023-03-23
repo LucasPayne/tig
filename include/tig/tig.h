@@ -15,11 +15,15 @@
 #define TIG_H
 
 #include <stdio.h>
+extern int g_COUNTER;
 extern FILE *LOG;
 #define log(...) {\
-     fprintf(LOG, ##__VA_ARGS__);\
-     fflush(LOG);\
+    fprintf(LOG, "[%d] ", g_COUNTER++);\
+    fprintf(LOG, ##__VA_ARGS__);\
+    fflush(LOG);\
 }
+#include <stdbool.h>
+extern bool g_BEGIN_UPDATE_IGNORE_FEATURE;
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -57,7 +61,6 @@ extern FILE *LOG;
 #include <ctype.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -11,6 +11,8 @@ Added move-cursor-top and move-cursor-bottom.
 Added view-diff-branchfrom.
 Compare the working tree against a tag called branchfrom.
 
+Added a diff preview window in the diff and stage views.
+Hover over a file in the patch-stat header to see this.
 
 Tig: text-mode interface for Git
 ================================
