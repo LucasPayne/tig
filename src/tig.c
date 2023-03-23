@@ -176,6 +176,7 @@ view_driver(struct view *view, enum request request)
 	case REQ_SCROLL_WHEEL_DOWN:
 	case REQ_SCROLL_WHEEL_UP:
 	case REQ_SCROLL_CURSOR_CENTER:
+	case REQ_SCROLL_CURSOR_TOP:
 		scroll_view(view, request);
 		break;
 

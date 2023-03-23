@@ -183,6 +183,10 @@ scroll_view(struct view *view, enum request request)
 		if ((int)view->pos.offset + (int)lines < 0) lines = -view->pos.offset;
                 break;
 
+	case REQ_SCROLL_CURSOR_TOP:
+                lines = (view->pos.lineno - view->pos.offset);
+		break;
+
 	default:
 		die("request %d not handled in switch", request);
 	}

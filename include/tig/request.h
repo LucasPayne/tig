@@ -71,6 +71,7 @@
 	REQ_(SCROLL_HALF_PAGE_DOWN,	"Scroll half a page down"), \
 	REQ_(SCROLL_FIRST_COL,	"Scroll to the first line columns"), \
 	REQ_(SCROLL_CURSOR_CENTER,	"Scroll to center the cursor"), \
+	REQ_(SCROLL_CURSOR_TOP,	"Scroll so that the cursor is at the top"), \
 	REQ_(SCROLL_LEFT,	"Scroll two columns left"), \
 	REQ_(SCROLL_RIGHT,	"Scroll two columns right"), \
 	\
