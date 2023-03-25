@@ -793,6 +793,9 @@ update_view_title(struct view *view)
                 //curses doesn't actually interpret ansi color sequences.
 		//strcat(cmd, " --color=always ");
 		strcat(cmd, " -- ");
+		strcat(cmd, "./");
+		strcat(cmd, repo.cdup);
+		strcat(cmd, "/");
 		strcat(cmd, view->env->file);
 
 	    //mvwprintw(view->preview, 0, 0, "%s", cmd);
