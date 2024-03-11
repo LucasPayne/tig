@@ -1,6 +1,8 @@
 FORK
 ====
 
+image::tig.png[]
+
 Added "addbind" command. Unlike bind, this will keep the previously bound action/actions. Therefore keys can be bound to
 an arbitrary sequence of actions by using bind, then multiple addbinds.
 
